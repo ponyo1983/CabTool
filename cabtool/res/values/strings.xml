@@ -3,6 +3,9 @@
 
     <string name="app_name">cabtool</string>
     <string name="action_settings">Settings</string>
+    <string name="action_version">主机版本</string>
+    <string name="action_get_version">刷新</string>
+    <string name="action_about">关于程序</string>
     <string name="hello_world">Hello world!</string>
     <string name="title_activity_tab">TabActivity</string>
     <string name="title_section1">解码板 1-1</string>
@@ -10,5 +13,6 @@
     <string name="title_section3">解码板 2-1</string>
     <string name="title_section4">解码板 2-2</string>
     <string name="title_activity_host_info">主机工具</string>
+    <string name="title_activity_host_version">HostVersionActivity</string>
 
 </resources>

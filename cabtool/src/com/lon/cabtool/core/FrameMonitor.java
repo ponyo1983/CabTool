@@ -71,6 +71,13 @@ public class FrameMonitor {
 
 	}
 
+	public void clearFrame()
+	{
+		synchronized (listFrames) {
+			listFrames.clear();
+		}
+		
+	}
 	public SerialFrame getFrame(int timeout) {
 		SerialFrame frame = null;
 		synchronized (listFrames) {

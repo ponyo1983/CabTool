@@ -121,33 +121,7 @@ public class SerialManager {
 			
 		}
 	}
-	public void write() {
-		byte[] data = new byte[16];
-		data[0] = (byte) 0xff;
-		data[1] = 0x05;
-		data[2] = 1;
-		data[3] = 2;
-		data[4] = 3;
-		data[5] = 4;
-		data[6] = 5;
-		int crc = CRC16.ComputeCRC16(data, 1, 11);
-
-		byte crcLow = (byte) (crc & 0xff);
-		data[12] = crcLow;
-		data[13] = crcLow;
-
-		byte crcHigh = (byte) (crc >> 8);
-		data[14] = crcHigh;
-		data[15] = crcHigh;
-		if (usbPort != null) {
-			try {
-				usbPort.write(data, 1000);
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-		}
-	}
+	
 
 	private class RxHandler implements Runnable {
 
