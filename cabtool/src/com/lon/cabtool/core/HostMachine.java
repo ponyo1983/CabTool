@@ -15,6 +15,9 @@ public class HostMachine {
 
 	List<HostVersion> versionList = new ArrayList<HostVersion>();
 
+	int abMode = -1;
+	int mainPort = -1;
+
 	byte[][] infoDataList = new byte[][] { new byte[] { (byte) 0xff, 0x05, 0x5d, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
 			new byte[] { (byte) 0xff, 0x06, 0x5d, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
 			new byte[] { (byte) 0xff, 0x05, 0x7d, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
@@ -115,6 +118,16 @@ public class HostMachine {
 		return versionList;
 	}
 
+	public int getABMode() {
+		return abMode;
+	}
+
+	// 0-A套 1:-B套
+	public void setABMode(int mode) {
+		this.abMode = mode;
+		this.mainPort = -1;
+	}
+
 	public void start() {
 		if ((feedbackThread == null) || (feedbackThread.isAlive() == false)) {
 			feedbackThread = new Thread(new Feedback());
@@ -127,10 +140,20 @@ public class HostMachine {
 	}
 
 	public void startQueryVersions() {
-		if ((versionThread == null) || (versionThread.isAlive() == false)) {
-			versionThread = new Thread(new QueryVersion());
-			versionThread.start();
+		
+		if(versionThread!=null && (versionThread.isAlive()))
+		{
+			versionThread.interrupt();
+			try {
+				versionThread.join();
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 		}
+		
+		versionThread = new Thread(new QueryVersion());
+		versionThread.start();
 	}
 
 	private void updateData(byte[] data) {
@@ -171,16 +194,23 @@ public class HostMachine {
 
 						HostMachine.this.updateData(data);
 
-						if ((data[1] == 0x05 || data[1] == 0x06) && (data[2] == 0x5d)) {
-							feedback[0] = 0x09;
-							feedback[1] = 0x1d;
-							feedback[2] = data[3];
-							feedback[3] = data[4];
-							feedback[4] = data[9];
-							feedback[5] = data[10];
-							feedback[6] = 0;
-
-							SerialManager.getInstance().sendPackage(feedback, 0, feedback.length);
+						if (data[2] == 0x5d) {
+							if (abMode < 0) {
+								if (((data[11] & 0x040) == 0x040)) {
+									abMode = (data[1] == 0x05) ? 0 : ((data[1] == 0x06) ? 1 : -1);
+								}
+							}
+							if (((abMode == 0) && (data[1] == 0x05)) || ((abMode == 1) && (data[1] == 0x06))) {
+								feedback[0] = 0x09;
+								feedback[1] = 0x1d;
+								feedback[2] = data[3];
+								feedback[3] = data[4];
+								feedback[4] = data[9];
+								feedback[5] = data[10];
+								feedback[6] = 0;
+								mainPort = frame.getPort();
+								SerialManager.getInstance().sendPackage(frame.getPort(), feedback, 0, feedback.length);
+							}
 						}
 
 					}
@@ -204,7 +234,7 @@ public class HostMachine {
 		data[4] = 0;
 		data[5] = 0;
 		data[6] = (byte) (mainXhk + ((checkXhk & 0x0ff) << 2) + ((state & 0x0ff) << 6));
-		SerialManager.getInstance().sendPackage(data, 0, data.length);
+		SerialManager.getInstance().sendPackage(mainPort, data, 0, data.length);
 	}
 
 	private void queryVersion(byte boardNum, byte jkkNum) {
@@ -213,7 +243,7 @@ public class HostMachine {
 		data[0] = (byte) 0xfd;
 		data[1] = (byte) 0x1d;
 		data[2] = boardNum;
-		SerialManager.getInstance().sendPackage(data, 0, data.length);
+		SerialManager.getInstance().sendPackage(mainPort, data, 0, data.length);
 	}
 
 	private class QueryVersion implements Runnable {
@@ -228,12 +258,8 @@ public class HostMachine {
 		public void run() {
 			// TODO Auto-generated method stub
 
-			int[][] filters = new int[][] { 
-					new int[] { 0xff, 0x05, 0x5d, }, 
-					new int[] { 0xff, 0x06, 0x5d, }, 
-					new int[] { 0xff, 0xfd, 0x1d, },// 版本信息帧
-					new int[] { 0xff, 0x05, 0x7d, }, 
-					new int[] { 0xff, 0x06, 0x7d, }, };
+			int[][] filters = new int[][] { new int[] { 0xff, 0x05, 0x5d, }, new int[] { 0xff, 0x06, 0x5d, }, new int[] { 0xff, 0xfd, 0x1d, },// 版本信息帧
+					new int[] { 0xff, 0x05, 0x7d, }, new int[] { 0xff, 0x06, 0x7d, }, };
 
 			FrameMonitor monitor = new FrameMonitor();
 			monitor.addFilter(filters);
@@ -248,27 +274,101 @@ public class HostMachine {
 				int mainJKK = 0;
 				for (byte i = 0; i < 17; i++) {
 					HostVersion ver = versionList.get(i);
-					if(ver.getSelected()==false) continue;
+					if (ver.getSelected() == false)
+						continue;
+					mainJKK = HostMachine.this.getABMode();
 					if (ABSel[i] != -1) { // 设置AB套
 						mainJKK = ABSel[i];
+						monitor.enableFilter(mainJKK);
+						monitor.disableFilter(1 - mainJKK);
+						monitor.disableFilter(2);
+						monitor.disableFilter(3);
+						monitor.disableFilter(4);
+						monitor.clearFrame();
+						HostMachine.this.setABMode(mainJKK);
+						long startTime = System.currentTimeMillis();
+						while (true) {
+							SerialFrame frame = monitor.getFrame(1000);
+							if (frame != null) {
+								byte[] data = frame.getData();
+								if ((data[11] & 0x040) == 0x040) {
+									break;
+								}
+							}
+							long endTime = System.currentTimeMillis();
+							if (endTime - startTime > 6000) {
+								break;
+							}
+						}
+
 					} else {
+						monitor.enableFilter(0);
+						monitor.enableFilter(1);
+						monitor.disableFilter(2);
+						monitor.disableFilter(3);
+						monitor.disableFilter(4);
+						monitor.clearFrame();
+						long startTime = System.currentTimeMillis();
+						while (true) {
+							SerialFrame frame = monitor.getFrame(1000);
+							if (frame != null) {
+								byte[] data = frame.getData();
+								if ((data[11] & 0x040) == 0x040) {
+									mainJKK = (data[1] == 0x05) ? 0 : ((data[1] == 0x06) ? 1 : -1);
+									break;
+								}
+							}
+							long endTime = System.currentTimeMillis();
+							if (endTime - startTime > 3000) {
+								break;
+							}
+						}
 
 					}
 
 					if (JMSel[i] != -1) {
-						HostMachine.this.jkkDebug((byte) mainJKK, (byte) 0x55, (byte) JMSel[i], (byte) JMSel[i], (byte) 1);
-					}
+						monitor.disableFilter(0);
+						monitor.disableFilter(1);
+						monitor.disableFilter(2);
+						int index = (mainJKK == 0) ? 0 : 1;
+						monitor.enableFilter(3 + index);
+						monitor.disableFilter(3 + (1 - index));
+						monitor.clearFrame();
+						long startTime = System.currentTimeMillis();
+						while (true) {
+							HostMachine.this.jkkDebug((byte) index, (byte) 0x55, (byte) JMSel[i], (byte) JMSel[i], (byte) 1);
+							SerialFrame frame = monitor.getFrame(1000);
 
+							if (frame != null) {
+								byte[] data = frame.getData();
+								int mainUse = ((data[5] &0x0ff)& 0x03);
+								int checkUse = ((data[5] &0x0ff)& 0x0f) >> 2;
+								if ((mainUse == JMSel[i]) && (checkUse == JMSel[i])) {
+									
+									break;
+								}
+							}
+							long endTime = System.currentTimeMillis();
+							if (endTime - startTime > 5000) {
+								break;
+							}
+						}
+
+					}
+					
+					Thread.currentThread().sleep(2000);
 					// 开始查询
 					monitor.disableFilter(0);
 					monitor.disableFilter(1);
 					monitor.enableFilter(2);
 					monitor.disableFilter(3);
 					monitor.disableFilter(4);
-					
+
 					monitor.clearFrame();
 					reply = false;
-					for (int j = 0; j < 5; j++) {
+					long startTime=System.currentTimeMillis();
+					while(true)
+					{
 						HostMachine.this.queryVersion(BoardNum[i], (byte) mainJKK);
 
 						SerialFrame frame = monitor.getFrame(1000);
@@ -292,7 +392,13 @@ public class HostMachine {
 								break;
 							}
 						}
+						long endTime=System.currentTimeMillis();
+						if(endTime-startTime>10000)
+						{
+							break;
+						}
 					}
+					
 					if (reply == false)
 						continue;
 

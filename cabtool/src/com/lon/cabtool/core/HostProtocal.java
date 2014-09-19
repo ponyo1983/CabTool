@@ -1,11 +1,10 @@
 package com.lon.cabtool.core;
 
-import java.lang.reflect.Array;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import android.util.Log;
 
 import com.lon.cabtool.util.CRC16;
 
@@ -22,7 +21,7 @@ public class HostProtocal implements SerialProtocal {
 	
 	
 	@Override
-	public void parseFrame(byte[] buffer, int offset, int length) {
+	public void parseFrame(int port,byte[] buffer, int offset, int length) {
 
 		// TODO Auto-generated method stub
 		if(length<=0) return;
@@ -67,7 +66,7 @@ public class HostProtocal implements SerialProtocal {
 					
 				}
 				else {
-					SerialFrame frame=new SerialFrame(frameBuffer, FrameSize);
+					SerialFrame frame=new SerialFrame(port,frameBuffer, FrameSize);
 					synchronized (listMonitors) {
 						for(FrameMonitor monitor:listMonitors)
 						{

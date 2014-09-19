@@ -3,7 +3,6 @@ package com.lon.cabtool;
 
 import java.util.List;
 
-import android.R.string;
 import android.app.Activity;
 import android.view.LayoutInflater;
 import android.view.View;
