@@ -15,12 +15,13 @@ public class HostMachine {
 	Thread versionThread;
 
 	Thread paramReadThread;
+	Thread paramWriteThread;
 
 	List<HostInfo> infoList = new ArrayList<HostInfo>();
 
 	List<HostVersion> versionList = new ArrayList<HostVersion>();
 
-	boolean[] paramSel=new boolean[]{true,true,true,true,};
+	boolean[] paramSel = new boolean[] { true, true, true, true, };
 	HashMap<String, List<HostParam>> paramHash = new HashMap<String, List<HostParam>>();
 
 	int abMode = -1;
@@ -140,37 +141,42 @@ public class HostMachine {
 		String key = Integer.toString(index);
 		return paramHash.get(key);
 	}
-	
-	public void clearParam(int index)
-	{
-		if(index>=0 && index<4)
-		{
+
+	public void clearParam(int index) {
+		if (index >= 0 && index < 4) {
 			String key = Integer.toString(index);
-			List<HostParam> params=paramHash.get(key);
-			
-			for(HostParam param:params)
-			{
+			List<HostParam> params = paramHash.get(key);
+
+			for (HostParam param : params) {
 				param.setParam(0);
+				param.setState(0);
 			}
 		}
 	}
-	
-	public void setParamSel(int index,boolean sel)
-	{
-		if(index>=0&&index<4)
-		{
-			paramSel[index]=sel;
+
+	public void clearState(int index) {
+		if (index >= 0 && index < 4) {
+			String key = Integer.toString(index);
+			List<HostParam> params = paramHash.get(key);
+
+			for (HostParam param : params) {
+				param.setState(0);
+			}
 		}
 	}
-	public boolean getParamSel(int index)
-	{
-		if(index>=0&&index<4)
-		{
+
+	public void setParamSel(int index, boolean sel) {
+		if (index >= 0 && index < 4) {
+			paramSel[index] = sel;
+		}
+	}
+
+	public boolean getParamSel(int index) {
+		if (index >= 0 && index < 4) {
 			return paramSel[index];
 		}
 		return false;
 	}
-	
 
 	public void set06Standard() {
 		for (int i = 0; i < 4; i++) {
@@ -247,6 +253,21 @@ public class HostMachine {
 
 		paramReadThread = new Thread(new ParamReadHandler());
 		paramReadThread.start();
+	}
+
+	public void startWriteParams() {
+		if (paramWriteThread != null && (paramWriteThread.isAlive())) {
+			paramWriteThread.interrupt();
+			try {
+				paramWriteThread.join();
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+
+		paramWriteThread = new Thread(new ParamWriteHandler());
+		paramWriteThread.start();
 	}
 
 	private void updateData(byte[] data) {
@@ -346,6 +367,28 @@ public class HostMachine {
 
 		SerialManager.getInstance().sendPackage(mainPort, data, 0, data.length);
 
+	}
+
+	public void xhkWriteE2PROM(byte jkkNum, byte xhkNum, byte addr, int param) {
+		byte[] data = new byte[10];
+		data[0] = 0x0a;
+		data[1] = 0x1d;
+		data[2] = (byte) (xhkNum | 0x038);
+		data[3] = (byte) 0xaa;
+		data[4] = addr;
+		data[5] = (byte) (param & 0x0ff);
+		if (data[5] == (byte) 0xff) {
+			data[5] = (byte) 0xfe;
+		}
+		data[6] = (byte) (param >> 8);
+		if (data[6] == (byte) 0xff) {
+			data[6] = (byte) 0xfe;
+		}
+		data[7] = 0;
+		data[8] = 0;
+		data[9] = (byte) (((data[2] & 0x0ff) + (data[3] & 0x0ff) + (data[4] & 0x0ff) + (data[5] & 0x0ff) + (data[6] & 0x0ff)) & 0x07f);
+
+		SerialManager.getInstance().sendPackage(mainPort, data, 0, data.length);
 	}
 
 	private void queryVersion(byte boardNum, byte jkkNum) {
@@ -551,53 +594,154 @@ public class HostMachine {
 
 			SerialManager.getInstance().getDefaultProtocal().addFrameMonitor(monitor);
 
-			for (byte i = 0; i < 4; i++)
-			{
-				boolean sel=HostMachine.this.getParamSel(i);
-				if(sel)
-				{
+			for (byte i = 0; i < 4; i++) {
+				boolean sel = HostMachine.this.getParamSel(i);
+				if (sel) {
 					HostMachine.this.clearParam(i);
 				}
 			}
-			
+
 			try {
 
-				int ab=HostMachine.this.getABMode();
-				if(ab<0)
-				{
-					ab=0;
+				int ab = HostMachine.this.getABMode();
+				if (ab < 0) {
+					ab = 0;
 					HostMachine.this.setABMode(0);
 				}
-				byte jkk=(byte)ab;
-				jkk=(jkk==0)?(byte)0:(byte)1;
+				byte jkk = (byte) ab;
+				jkk = (jkk == 0) ? (byte) 0 : (byte) 1;
 				for (byte i = 0; i < 4; i++) {
-					List<HostParam> params=HostMachine.this.getParams(i);
+
+					boolean sel = HostMachine.this.getParamSel(i);
+					if (sel == false)
+						continue;
+
+					List<HostParam> params = HostMachine.this.getParams(i);
 					for (byte j = 1; j < 12; j++) {
 						long startTime = System.currentTimeMillis();
+						params.get(j - 1).setState(1);
 						while (true) {
 							HostMachine.this.jkkDebug(jkk, (byte) 0x55, i, i, (byte) 1);
 							Thread.currentThread().sleep(200);
 
 							HostMachine.this.xhkReadE2PROM(jkk, i, j);
-							
-							SerialFrame frame=monitor.getFrame(500);
-							if(frame!=null)
-							{
-								byte[] data=frame.getData();
-								 if (((data[3] & 0x0fc) == 0x038) && ((data[4]&0x0ff) == 0x055))
-	                                {
-	                                    byte addr = data[5];
-	                                    int paramVal = ((data[6]&0x0ff) + ((data[7]&0x0ff) << 8));
-	                                    if (addr == j)
-	                                    {
-	                                    	params.get(j-1).setParam(paramVal);
-	                                        break;
-	                                    }
-	                                }
+
+							SerialFrame frame = monitor.getFrame(500);
+							if (frame != null) {
+								byte[] data = frame.getData();
+								if (((data[3] & 0x0fc) == 0x038) && ((data[4] & 0x0ff) == 0x055)) {
+									byte addr = data[5];
+									int paramVal = ((data[6] & 0x0ff) + ((data[7] & 0x0ff) << 8));
+									if (addr == j) {
+										params.get(j - 1).setParam(paramVal);
+										params.get(j - 1).setState(2);
+										break;
+									}
+								}
 							}
-							
+
 							long endTime = System.currentTimeMillis();
 							if (endTime - startTime > 15000) {
+								params.get(j - 1).setState(3);
+								break;
+							}
+						}
+					}
+				}
+
+			} catch (Exception e) {
+				// TODO: handle exception
+			} finally {
+				SerialManager.getInstance().getDefaultProtocal().removeFrameMonitor(monitor);
+			}
+
+		}
+
+	}
+
+	private class ParamWriteHandler implements Runnable {
+
+		@Override
+		public void run() {
+			// TODO Auto-generated method stub
+
+			FrameMonitor monitor = new FrameMonitor();
+			monitor.addFilter(new int[] { 0xff, 0x0a, 0x1d, });
+
+			SerialManager.getInstance().getDefaultProtocal().addFrameMonitor(monitor);
+
+			for (byte i = 0; i < 4; i++) {
+				boolean sel = HostMachine.this.getParamSel(i);
+				if (sel) {
+					HostMachine.this.clearState(i);
+				}
+			}
+			try {
+
+				int ab = HostMachine.this.getABMode();
+				if (ab < 0) {
+					ab = 0;
+					HostMachine.this.setABMode(0);
+				}
+				byte jkk = (byte) ab;
+				jkk = (jkk == 0) ? (byte) 0 : (byte) 1;
+				final int[] defaultParam = new int[] { 21930, 1224, 120, 222, 296, 303, 312, 312, 310, 313, 313, 304, 0, };
+				int[] tmpParam = new int[] { 21930, 1224, 120, 222, 296, 303, 312, 312, 310, 313, 313, 304, 0, };
+				int checkSum = 0;
+				for (byte i = 0; i < 4; i++) {
+					boolean sel = HostMachine.this.getParamSel(i);
+					if (sel == false)
+						continue;
+					List<HostParam> params = HostMachine.this.getParams(i);
+					checkSum = 0;
+					for (int j = 1; j < 12; j++) {
+						HostParam param = params.get(j - 1);
+						if (param.getParam() <= 0) {
+							param.setParam(defaultParam[j]);
+						}
+						tmpParam[j] = param.getParam();
+						checkSum += tmpParam[j];
+					}
+					checkSum = (int) (checkSum & 0x0fefe);
+					tmpParam[12] = checkSum;
+					for (byte j = 0; j < 13; j++) {
+						int valWrite = tmpParam[j];
+					
+						long startTime = System.currentTimeMillis();
+						if (j >= 1 && j < 12) {
+							params.get(j - 1).setState(-1);
+						}
+						while (true) {
+							HostMachine.this.jkkDebug(jkk, (byte) 0x55, i, i, (byte) 1);
+							Thread.currentThread().sleep(200);
+
+							HostMachine.this.xhkWriteE2PROM(jkk, i, j, valWrite);
+							Thread.currentThread().sleep(200);
+							HostMachine.this.xhkReadE2PROM(jkk, i, j);
+
+							SerialFrame frame = monitor.getFrame(500);
+							if (frame != null) {
+								byte[] data = frame.getData();
+								if (((data[3] & 0x0fc) == 0x038) && ((data[4] & 0x0ff) == 0x055)) {
+									byte addr = data[5];
+									int paramVal = ((data[6] & 0x0ff) + ((data[7] & 0x0ff) << 8));
+									if (addr == j) {
+										if (paramVal == valWrite) {
+											if (j >= 1 && j < 12) {
+												params.get(j - 1).setState(-2);
+											}
+											break;
+										}
+
+									}
+								}
+							}
+
+							long endTime = System.currentTimeMillis();
+							if (endTime - startTime > 15000) {
+								if (j >= 1 && j < 12) {
+									params.get(j - 1).setState(-3);
+								}
 								break;
 							}
 						}

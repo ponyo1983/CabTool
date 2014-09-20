@@ -4,6 +4,7 @@
     <string name="app_name">cabtool</string>
     <string name="action_settings">设置</string>
     <string name="action_param_read">读取参数</string>
+    <string name="action_param_write">写入参数</string>
     <string name="action_version">主机版本</string>
     <string name="action_param">解码参数</string>
     <string name="action_get_version">刷新</string>
