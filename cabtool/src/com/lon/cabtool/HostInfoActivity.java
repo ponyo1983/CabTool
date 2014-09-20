@@ -82,6 +82,9 @@ public class HostInfoActivity extends Activity {
 		case R.id.action_version:
 			startActivity(new Intent(this,HostVersionActivity.class));
 			break;
+		case R.id.action_param:
+			startActivity(new Intent(this,HostParamActivity.class));
+			break;
 		default: // 对没有处理的事件，交给父类来处理
 			return super.onOptionsItemSelected(item);
 		} // 返回true表示处理完菜单项的事件，不需要将该事件继续传播下去了

@@ -5,10 +5,15 @@
         android:orderInCategory="100"
         android:showAsAction="never"
         android:title="@string/action_version"/>
-
+    <item
+        android:id="@+id/action_param"
+        android:orderInCategory="100"
+        android:showAsAction="never"
+        android:title="@string/action_param"/>
     <item
         android:id="@+id/action_about"
         android:orderInCategory="100"
         android:showAsAction="never"
         android:title="@string/action_about"/>
+
 </menu>

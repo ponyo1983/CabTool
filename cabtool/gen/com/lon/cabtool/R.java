@@ -34,15 +34,18 @@ public final class R {
         public static final int gear=0x7f020003;
         public static final int launcher=0x7f020004;
         public static final int light=0x7f020005;
-        public static final int temp=0x7f020006;
-        public static final int version=0x7f020007;
-        public static final int wave=0x7f020008;
+        public static final int params=0x7f020006;
+        public static final int temp=0x7f020007;
+        public static final int version=0x7f020008;
+        public static final int wave=0x7f020009;
     }
     public static final class id {
-        public static final int action_about=0x7f0a000f;
-        public static final int action_get_version=0x7f0a0010;
-        public static final int action_settings=0x7f0a0011;
-        public static final int action_version=0x7f0a000e;
+        public static final int action_about=0x7f0a0012;
+        public static final int action_get_version=0x7f0a0013;
+        public static final int action_param=0x7f0a0011;
+        public static final int action_param_read=0x7f0a0015;
+        public static final int action_settings=0x7f0a0014;
+        public static final int action_version=0x7f0a0010;
         public static final int addexam_list_icon=0x7f0a000a;
         public static final int addexam_list_item_text=0x7f0a000b;
         public static final int details1=0x7f0a0006;
@@ -54,6 +57,8 @@ public final class R {
         public static final int listView_list=0x7f0a0000;
         public static final int pager=0x7f0a0001;
         public static final int pager_title_strip=0x7f0a0002;
+        public static final int param_name=0x7f0a000e;
+        public static final int param_value=0x7f0a000f;
         public static final int section_label=0x7f0a0003;
         public static final int selected=0x7f0a0009;
         public static final int text=0x7f0a0005;
@@ -66,7 +71,9 @@ public final class R {
         public static final int list_item_details_light=0x7f030004;
         public static final int list_item_host_info=0x7f030005;
         public static final int list_item_host_info_grp=0x7f030006;
-        public static final int list_item_host_version=0x7f030007;
+        public static final int list_item_host_param=0x7f030007;
+        public static final int list_item_host_version=0x7f030008;
+        public static final int param_input=0x7f030009;
     }
     public static final class menu {
         public static final int host_info=0x7f090000;
@@ -75,41 +82,43 @@ public final class R {
         public static final int tab=0x7f090003;
     }
     public static final class string {
-        public static final int action_about=0x7f060004;
-        public static final int action_get_version=0x7f060003;
+        public static final int action_about=0x7f060006;
+        public static final int action_get_version=0x7f060005;
+        public static final int action_param=0x7f060004;
+        public static final int action_param_read=0x7f060002;
         public static final int action_settings=0x7f060001;
-        public static final int action_version=0x7f060002;
+        public static final int action_version=0x7f060003;
         public static final int app_name=0x7f060000;
-        public static final int hello_world=0x7f060005;
-        public static final int pref_default_display_name=0x7f060012;
-        public static final int pref_description_social_recommendations=0x7f060010;
+        public static final int hello_world=0x7f060007;
+        public static final int pref_default_display_name=0x7f060014;
+        public static final int pref_description_social_recommendations=0x7f060012;
         /**  Example settings for Data & Sync 
          */
-        public static final int pref_header_data_sync=0x7f060014;
+        public static final int pref_header_data_sync=0x7f060016;
         /**  Strings related to Settings 
  Example General settings 
          */
-        public static final int pref_header_general=0x7f06000e;
+        public static final int pref_header_general=0x7f060010;
         /**  Example settings for Notifications 
          */
-        public static final int pref_header_notifications=0x7f060017;
-        public static final int pref_ringtone_silent=0x7f06001a;
-        public static final int pref_title_add_friends_to_messages=0x7f060013;
-        public static final int pref_title_display_name=0x7f060011;
-        public static final int pref_title_new_message_notifications=0x7f060018;
-        public static final int pref_title_ringtone=0x7f060019;
-        public static final int pref_title_social_recommendations=0x7f06000f;
-        public static final int pref_title_sync_frequency=0x7f060015;
-        public static final int pref_title_system_sync_settings=0x7f060016;
-        public static final int pref_title_vibrate=0x7f06001b;
-        public static final int title_activity_host_info=0x7f06000b;
-        public static final int title_activity_host_version=0x7f06000c;
-        public static final int title_activity_settings=0x7f06000d;
-        public static final int title_activity_tab=0x7f060006;
-        public static final int title_section1=0x7f060007;
-        public static final int title_section2=0x7f060008;
-        public static final int title_section3=0x7f060009;
-        public static final int title_section4=0x7f06000a;
+        public static final int pref_header_notifications=0x7f060019;
+        public static final int pref_ringtone_silent=0x7f06001c;
+        public static final int pref_title_add_friends_to_messages=0x7f060015;
+        public static final int pref_title_display_name=0x7f060013;
+        public static final int pref_title_new_message_notifications=0x7f06001a;
+        public static final int pref_title_ringtone=0x7f06001b;
+        public static final int pref_title_social_recommendations=0x7f060011;
+        public static final int pref_title_sync_frequency=0x7f060017;
+        public static final int pref_title_system_sync_settings=0x7f060018;
+        public static final int pref_title_vibrate=0x7f06001d;
+        public static final int title_activity_host_info=0x7f06000d;
+        public static final int title_activity_host_version=0x7f06000e;
+        public static final int title_activity_settings=0x7f06000f;
+        public static final int title_activity_tab=0x7f060008;
+        public static final int title_section1=0x7f060009;
+        public static final int title_section2=0x7f06000a;
+        public static final int title_section3=0x7f06000b;
+        public static final int title_section4=0x7f06000c;
     }
     public static final class style {
         /** 

@@ -1,9 +1,11 @@
 package com.lon.cabtool.core;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 import com.lon.cabtool.HostInfo;
+import com.lon.cabtool.HostParam;
 import com.lon.cabtool.HostVersion;
 
 public class HostMachine {
@@ -11,9 +13,15 @@ public class HostMachine {
 	static HostMachine gMachine = null;
 	Thread feedbackThread;
 	Thread versionThread;
+
+	Thread paramReadThread;
+
 	List<HostInfo> infoList = new ArrayList<HostInfo>();
 
 	List<HostVersion> versionList = new ArrayList<HostVersion>();
+
+	boolean[] paramSel=new boolean[]{true,true,true,true,};
+	HashMap<String, List<HostParam>> paramHash = new HashMap<String, List<HostParam>>();
 
 	int abMode = -1;
 	int mainPort = -1;
@@ -28,7 +36,7 @@ public class HostMachine {
 	private HostMachine() {
 		initInfos();
 		initVersions();
-
+		initParams();
 	}
 
 	public static HostMachine getInstance() {
@@ -110,6 +118,77 @@ public class HostMachine {
 		versionList.add(new HostVersion("记录板-MSP"));
 	}
 
+	private void initParams() {
+		for (int i = 0; i < 4; i++) {
+			List<HostParam> list = new ArrayList<HostParam>();
+			list.add(new HostParam("温度系数", 0));
+			list.add(new HostParam("25Hz", 0));
+			list.add(new HostParam("50Hz", 0));
+			list.add(new HostParam("550Hz", 0));
+			list.add(new HostParam("650Hz", 0));
+			list.add(new HostParam("750Hz", 0));
+			list.add(new HostParam("850Hz", 0));
+			list.add(new HostParam("1700Hz", 0));
+			list.add(new HostParam("2000Hz", 0));
+			list.add(new HostParam("2300Hz", 0));
+			list.add(new HostParam("2600Hz", 0));
+			paramHash.put(Integer.toString(i), list);
+		}
+	}
+
+	public List<HostParam> getParams(int index) {
+		String key = Integer.toString(index);
+		return paramHash.get(key);
+	}
+	
+	public void clearParam(int index)
+	{
+		if(index>=0 && index<4)
+		{
+			String key = Integer.toString(index);
+			List<HostParam> params=paramHash.get(key);
+			
+			for(HostParam param:params)
+			{
+				param.setParam(0);
+			}
+		}
+	}
+	
+	public void setParamSel(int index,boolean sel)
+	{
+		if(index>=0&&index<4)
+		{
+			paramSel[index]=sel;
+		}
+	}
+	public boolean getParamSel(int index)
+	{
+		if(index>=0&&index<4)
+		{
+			return paramSel[index];
+		}
+		return false;
+	}
+	
+
+	public void set06Standard() {
+		for (int i = 0; i < 4; i++) {
+			List<HostParam> params = paramHash.get(Integer.toString(i));
+			params.get(1).setParam(207);
+			params.get(2).setParam(220);
+			params.get(3).setParam(299);
+			params.get(4).setParam(308);
+			params.get(5).setParam(317);
+			params.get(6).setParam(317);
+			params.get(7).setParam(309);
+			params.get(8).setParam(307);
+			params.get(9).setParam(297);
+			params.get(10).setParam(272);
+		}
+
+	}
+
 	public List<HostInfo> getInfos() {
 		return infoList;
 	}
@@ -140,9 +219,8 @@ public class HostMachine {
 	}
 
 	public void startQueryVersions() {
-		
-		if(versionThread!=null && (versionThread.isAlive()))
-		{
+
+		if (versionThread != null && (versionThread.isAlive())) {
 			versionThread.interrupt();
 			try {
 				versionThread.join();
@@ -151,9 +229,24 @@ public class HostMachine {
 				e.printStackTrace();
 			}
 		}
-		
+
 		versionThread = new Thread(new QueryVersion());
 		versionThread.start();
+	}
+
+	public void startQueryParams() {
+		if (paramReadThread != null && (paramReadThread.isAlive())) {
+			paramReadThread.interrupt();
+			try {
+				paramReadThread.join();
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+
+		paramReadThread = new Thread(new ParamReadHandler());
+		paramReadThread.start();
 	}
 
 	private void updateData(byte[] data) {
@@ -235,6 +328,24 @@ public class HostMachine {
 		data[5] = 0;
 		data[6] = (byte) (mainXhk + ((checkXhk & 0x0ff) << 2) + ((state & 0x0ff) << 6));
 		SerialManager.getInstance().sendPackage(mainPort, data, 0, data.length);
+	}
+
+	private void xhkReadE2PROM(byte jkkNum, byte xhkNum, byte addr) {
+
+		byte[] data = new byte[10];
+		data[0] = 0x0a;
+		data[1] = 0x1d;
+		data[2] = (byte) (xhkNum | 0x038);
+		data[3] = (byte) 0x55;
+		data[4] = addr;
+		data[5] = 0;
+		data[6] = 0;
+		data[7] = 0;
+		data[8] = 0;
+		data[9] = (byte) (((data[2] & 0x0ff) + (data[3] & 0x0ff) + (data[4] & 0x0ff)) & 0x07f);
+
+		SerialManager.getInstance().sendPackage(mainPort, data, 0, data.length);
+
 	}
 
 	private void queryVersion(byte boardNum, byte jkkNum) {
@@ -341,10 +452,10 @@ public class HostMachine {
 
 							if (frame != null) {
 								byte[] data = frame.getData();
-								int mainUse = ((data[5] &0x0ff)& 0x03);
-								int checkUse = ((data[5] &0x0ff)& 0x0f) >> 2;
+								int mainUse = ((data[5] & 0x0ff) & 0x03);
+								int checkUse = ((data[5] & 0x0ff) & 0x0f) >> 2;
 								if ((mainUse == JMSel[i]) && (checkUse == JMSel[i])) {
-									
+
 									break;
 								}
 							}
@@ -355,7 +466,7 @@ public class HostMachine {
 						}
 
 					}
-					
+
 					Thread.currentThread().sleep(2000);
 					// 开始查询
 					monitor.disableFilter(0);
@@ -366,9 +477,8 @@ public class HostMachine {
 
 					monitor.clearFrame();
 					reply = false;
-					long startTime=System.currentTimeMillis();
-					while(true)
-					{
+					long startTime = System.currentTimeMillis();
+					while (true) {
 						HostMachine.this.queryVersion(BoardNum[i], (byte) mainJKK);
 
 						SerialFrame frame = monitor.getFrame(1000);
@@ -392,13 +502,12 @@ public class HostMachine {
 								break;
 							}
 						}
-						long endTime=System.currentTimeMillis();
-						if(endTime-startTime>10000)
-						{
+						long endTime = System.currentTimeMillis();
+						if (endTime - startTime > 10000) {
 							break;
 						}
 					}
-					
+
 					if (reply == false)
 						continue;
 
@@ -430,4 +539,79 @@ public class HostMachine {
 		}
 
 	}
+
+	private class ParamReadHandler implements Runnable {
+
+		@Override
+		public void run() {
+			// TODO Auto-generated method stub
+
+			FrameMonitor monitor = new FrameMonitor();
+			monitor.addFilter(new int[] { 0xff, 0x0a, 0x1d, });
+
+			SerialManager.getInstance().getDefaultProtocal().addFrameMonitor(monitor);
+
+			for (byte i = 0; i < 4; i++)
+			{
+				boolean sel=HostMachine.this.getParamSel(i);
+				if(sel)
+				{
+					HostMachine.this.clearParam(i);
+				}
+			}
+			
+			try {
+
+				int ab=HostMachine.this.getABMode();
+				if(ab<0)
+				{
+					ab=0;
+					HostMachine.this.setABMode(0);
+				}
+				byte jkk=(byte)ab;
+				jkk=(jkk==0)?(byte)0:(byte)1;
+				for (byte i = 0; i < 4; i++) {
+					List<HostParam> params=HostMachine.this.getParams(i);
+					for (byte j = 1; j < 12; j++) {
+						long startTime = System.currentTimeMillis();
+						while (true) {
+							HostMachine.this.jkkDebug(jkk, (byte) 0x55, i, i, (byte) 1);
+							Thread.currentThread().sleep(200);
+
+							HostMachine.this.xhkReadE2PROM(jkk, i, j);
+							
+							SerialFrame frame=monitor.getFrame(500);
+							if(frame!=null)
+							{
+								byte[] data=frame.getData();
+								 if (((data[3] & 0x0fc) == 0x038) && ((data[4]&0x0ff) == 0x055))
+	                                {
+	                                    byte addr = data[5];
+	                                    int paramVal = ((data[6]&0x0ff) + ((data[7]&0x0ff) << 8));
+	                                    if (addr == j)
+	                                    {
+	                                    	params.get(j-1).setParam(paramVal);
+	                                        break;
+	                                    }
+	                                }
+							}
+							
+							long endTime = System.currentTimeMillis();
+							if (endTime - startTime > 15000) {
+								break;
+							}
+						}
+					}
+				}
+
+			} catch (Exception e) {
+				// TODO: handle exception
+			} finally {
+				SerialManager.getInstance().getDefaultProtocal().removeFrameMonitor(monitor);
+			}
+
+		}
+
+	}
+
 }
