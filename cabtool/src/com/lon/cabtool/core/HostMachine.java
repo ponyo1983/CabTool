@@ -27,12 +27,17 @@ public class HostMachine {
 	int abMode = -1;
 	int mainPort = -1;
 
-	byte[][] infoDataList = new byte[][] { new byte[] { (byte) 0xff, 0x05, 0x5d, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+	byte[][] infoDataList = new byte[][] { 
+			new byte[] { (byte) 0xff, 0x05, 0x5d, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
 			new byte[] { (byte) 0xff, 0x06, 0x5d, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
 			new byte[] { (byte) 0xff, 0x05, 0x7d, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
 			new byte[] { (byte) 0xff, 0x06, 0x7d, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
 			new byte[] { (byte) 0xff, 0x07, 0x3d, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
-			new byte[] { (byte) 0xff, 0x07, 0x7d, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }, };
+			new byte[] { (byte) 0xff, 0x07, 0x7d, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+			new byte[] { (byte) 0xff, 0x08, 0x1d, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+			new byte[] { (byte) 0xff, 0x08, 0x3d, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+			new byte[] { (byte) 0xff, 0x08, 0x5d, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+			};
 
 	private HostMachine() {
 		initInfos();
@@ -97,6 +102,21 @@ public class HostMachine {
 		infoList.add(new HostInfo(infoList.size(), grpControl2, "主用线圈"));
 		infoList.add(new HostInfo(infoList.size(), grpControl2, "检查线圈"));
 		infoList.add(new HostInfo(infoList.size(), grpControl2, "I/II端"));
+		// TAX2
+		HostInfo tax2 = new HostInfo(infoList.size(), "TAX2箱信息");
+		infoList.add(tax2);
+		infoList.add(new HostInfo(infoList.size(), tax2, "日期"));
+		infoList.add(new HostInfo(infoList.size(), tax2, "时间"));
+		infoList.add(new HostInfo(infoList.size(), tax2, "记录卡容量"));
+		infoList.add(new HostInfo(infoList.size(), tax2, "记录板温度"));
+		infoList.add(new HostInfo(infoList.size(), tax2, "机车速度"));
+		infoList.add(new HostInfo(infoList.size(), tax2, "信号机种类"));
+		infoList.add(new HostInfo(infoList.size(), tax2, "信号机编号"));
+		infoList.add(new HostInfo(infoList.size(), tax2, "区段号"));
+		infoList.add(new HostInfo(infoList.size(), tax2, "公里标"));
+		infoList.add(new HostInfo(infoList.size(), tax2, "本/补"));
+		infoList.add(new HostInfo(infoList.size(), tax2, "车站号"));
+		infoList.add(new HostInfo(infoList.size(), tax2, "车次号"));
 	}
 
 	private void initVersions() {

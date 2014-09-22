@@ -1,5 +1,7 @@
 package com.lon.cabtool;
 
+import java.text.NumberFormat;
+
 import com.lon.cabtool.core.HostMachine;
 
 public class HostInfo {
@@ -115,6 +117,123 @@ public class HostInfo {
 			int param = (infoData[7]&0x0ff) & (1 << (index-18));
 			
 			return param>0?"使能":"禁用";
+		}
+		else if(index>=39 && index<=42) //TAX2箱信息
+		{
+			HostMachine.getInstance().getData(6, infoData);
+			String info="";
+			switch(index)
+			{
+			case 39:
+				 int year = ((infoData[7] & 0x001) << 6) | ((infoData[6]&0x0ff) >> 2);
+	             int month = ((infoData[6] & 0x003) << 2) + ((infoData[5]&0x0ff) >> 6);
+	             int day = ((infoData[5]&0x0ff) >> 1) & 0x01f;
+	             NumberFormat nf=NumberFormat.getNumberInstance();
+	             {
+	             StringBuilder sb=new StringBuilder();
+	             if(year<10)
+	             {
+	            	 sb.append("0");
+	             }
+	             sb.append(Integer.toString(year)+"年");
+	             if(month<10)
+	             {
+	            	 sb.append("0");
+	             }
+	             sb.append(Integer.toString(month)+"月");
+	             if(day<10)
+	             {
+	            	 sb.append("0");
+	             }
+	             sb.append(Integer.toString(day)+"日");
+	             info=sb.toString();
+	             }
+				break;
+			case 40:
+				 int hour = ((infoData[5] & 0x001) << 4) | ((infoData[4]&0x0ff) >> 4);
+                 int minute = ((infoData[4] & 0x00f) << 2) | ((infoData[3]&0x0ff) >> 6);
+                 int second = (infoData[3] & 0x03f);
+                 {
+    	             StringBuilder sb=new StringBuilder();
+    	             if(hour<10)
+    	             {
+    	            	 sb.append("0");
+    	             }
+    	             sb.append(Integer.toString(hour)+":");
+    	             if(minute<10)
+    	             {
+    	            	 sb.append("0");
+    	             }
+    	             sb.append(Integer.toString(minute)+":");
+    	             if(second<10)
+    	             {
+    	            	 sb.append("0");
+    	             }
+    	             sb.append(Integer.toString(second));
+    	             info=sb.toString();
+    	             }
+				break;
+			case 41:
+				 int cf = ((infoData[7]&0x0ff) >> 1) | ((infoData[8]&0x0ff) << 6);
+				 info=Integer.toString(cf)+"MB";
+				break;
+			case 42:
+			     int tempe = infoData[9];
+			     info=Integer.toString(tempe)+"℃";
+			     break;
+			}
+			
+             return info;
+		}
+		else if(index>=43 && index<=46) //TAX2箱信息
+		{
+			HostMachine.getInstance().getData(7, infoData);
+			String info="";
+			switch(index)
+			{
+			case 43:
+				 int speed = (infoData[3]&0x0ff) + ((infoData[4]&0x0ff) << 8) + ((infoData[5]&0x0ff) << 16);
+				 info=Integer.toString(speed)+"m/s";
+				break;
+			case 44:
+				 int xhjType=infoData[6]&0x0ff;
+				 info=Integer.toString(xhjType);
+				break;
+			case 45:
+				 int xhjNum = (infoData[7]&0x0ff) + ((infoData[8]&0x0ff) << 8);
+				 info=Integer.toString(xhjNum);
+				break;
+			case 46:
+				 int section=infoData[6]&0x0ff;
+				 info=Integer.toString(section);
+				break;
+			}
+			return info;
+		}
+		else if(index>=47&& index<=50)
+		{
+			HostMachine.getInstance().getData(8, infoData);
+			String info="";
+			switch(index)
+			{
+			case 47:
+				int miles = ((infoData[3]&0x0ff) | ((infoData[10] & 0x001) << 7)) | (((infoData[4]&0x0ff) | ((infoData[10] & 0x002) << 6)) << 8) | (((infoData[5]&0x0ff) | ((infoData[10] & 0x004) << 5)) << 16);
+				 info=Integer.toString(miles);
+				break;
+			case 48:
+				 int bb = ((infoData[6]&0x0ff) | ((infoData[10] & 0x008) << 4));
+				 info=Integer.toString(bb);
+				break;
+			case 49:
+				 int stationNum  = ((infoData[7]&0x0ff) | ((infoData[10] & 0x010) << 3));
+				 info=Integer.toString(stationNum);
+				break;
+			case 50:
+				 int locoNum = ((infoData[8]&0x0ff) | ((infoData[10] & 0x020) << 2)) + (((infoData[9]&0x0ff) | ((infoData[10] & 0x040) << 1)) << 8);
+				 info=Integer.toString(locoNum);
+				break;
+			}
+			return info;
 		}
 		return "";
 	}
